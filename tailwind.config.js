@@ -17,6 +17,11 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ["var(--font-crimson)", "serif"],
+        serif: ["var(--font-crimson)", "serif"],
+        mono: ["var(--font-courier)", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -24,33 +29,35 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "hsl(35, 80%, 50%)",
+          foreground: "hsl(0, 0%, 20%)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "hsl(160, 50%, 40%)",
+          foreground: "hsl(0, 0%, 98%)",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "hsl(45, 30%, 90%)",
+          foreground: "hsl(0, 0%, 30%)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "hsl(35, 80%, 90%)",
+          foreground: "hsl(35, 80%, 30%)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "hsl(45, 30%, 95%)",
+          foreground: "hsl(0, 0%, 20%)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "hsl(45, 30%, 95%)",
+          foreground: "hsl(0, 0%, 20%)",
         },
+        paper: "hsl(45, 30%, 95%)",
+        ink: "hsl(0, 0%, 20%)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -70,6 +77,9 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+      },
+      boxShadow: {
+        retro: "6px 6px 0 hsl(0, 0%, 20%)",
       },
     },
   },

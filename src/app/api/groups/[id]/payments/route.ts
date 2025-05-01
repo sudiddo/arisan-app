@@ -1,62 +1,131 @@
 import { NextResponse } from "next/server";
-import { authOptions } from "../../../auth/[...nextauth]/route";
-import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import prisma from "@/lib/prisma";
+import { verifyGroupAdmin, verifyGroupMember } from "@/lib/auth";
 
-export async function POST(
-  request: Request,
+export async function GET(
+  req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  console.log("SESSION:", JSON.stringify(session, null, 2));
-
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id: groupId } = params;
-  console.log(
-    `Authorization check for userId: ${session.user.id}, groupId: ${groupId}`
-  );
-
   try {
-    // First, let's check if the group exists
-    const groupExists = await prisma.group.findUnique({
-      where: { id: groupId },
-    });
-    console.log("Group exists:", !!groupExists);
+    const session = await getServerSession(authOptions);
 
-    if (!groupExists) {
-      return NextResponse.json({ error: "Group not found" }, { status: 404 });
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user is the creator
-    const isCreator = groupExists.creatorId === session.user.id;
-    console.log("User is creator:", isCreator);
+    const groupId = params.id;
+    const url = new URL(req.url);
+    const month = url.searchParams.get("month");
+    const year = url.searchParams.get("year");
+    const memberId = url.searchParams.get("memberId");
 
-    // Check if user is a member
-    const userMembership = await prisma.member.findFirst({
-      where: {
-        groupId,
-        userId: session.user.id,
-      },
-    });
-    console.log("User membership:", userMembership);
+    // Verify user belongs to group
+    const isGroupMember = await verifyGroupMember(groupId, session.user.id);
 
-    // If neither creator nor member, deny access
-    if (!isCreator && !userMembership) {
-      console.log("DENIED: User is neither creator nor member");
+    if (!isGroupMember) {
       return NextResponse.json(
-        { error: "Not authorized for this group" },
+        { error: "You don't have access to this group" },
         { status: 403 }
       );
     }
 
-    console.log("Authorization passed");
+    // Set up date range for the query
+    let startDate: Date;
+    let endDate: Date;
 
-    const body = await request.json();
+    if (month !== null && year !== null) {
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+
+      startDate = new Date(yearNum, monthNum, 1);
+      endDate = new Date(yearNum, monthNum + 1, 0); // Last day of month
+    } else {
+      // Default to current month
+      const currentDate = new Date();
+      startDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      endDate = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      );
+    }
+
+    // Build the query
+    interface PaymentWhereClause {
+      member: {
+        groupId: string;
+      };
+      scheduledDate: {
+        gte: Date;
+        lte: Date;
+      };
+      memberId?: string;
+    }
+
+    const whereClause: PaymentWhereClause = {
+      member: {
+        groupId,
+      },
+      scheduledDate: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // Add memberId filter if provided
+    if (memberId) {
+      whereClause.memberId = memberId;
+    }
+
+    // Get payments with member info
+    const payments = await prisma.payment.findMany({
+      where: whereClause,
+      include: {
+        member: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        scheduledDate: "asc",
+      },
+    });
+
+    return NextResponse.json(payments);
+  } catch (error) {
+    console.error("[PAYMENTS_GET]", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const groupId = params.id;
+    const body = await req.json();
     const { memberId } = body;
-    console.log("Request for memberId:", memberId);
+
+    // Make date optional - default to current month if not provided
+    const date = body.date || new Date().toISOString();
 
     if (!memberId) {
       return NextResponse.json(
@@ -65,56 +134,53 @@ export async function POST(
       );
     }
 
-    // Check if member exists and belongs to this group
-    const memberExists = await prisma.member.findFirst({
-      where: {
-        id: memberId,
-        groupId,
-      },
-    });
-    console.log("Target member exists:", !!memberExists);
+    // Verify user is the group creator (admin)
+    const isAdmin = await verifyGroupAdmin(groupId, session.user.id);
 
-    if (!memberExists) {
+    if (!isAdmin) {
       return NextResponse.json(
-        { error: "Member not found in this group" },
-        { status: 404 }
+        { error: "Only group admins can record payments" },
+        { status: 403 }
       );
     }
 
-    // Get first day of current month
-    const currentMonth = new Date();
-    currentMonth.setDate(1);
-    currentMonth.setHours(0, 0, 0, 0);
+    // Get the payment to toggle
+    const paymentDate = new Date(date);
 
-    // Toggle payment status - Skip the findUnique and go straight to upsert
-    const payment = await prisma.payment.upsert({
+    let payment = await prisma.payment.findFirst({
       where: {
-        memberId_scheduledDate: {
-          memberId,
-          scheduledDate: currentMonth,
-        },
-      },
-      update: {
-        isPaid: true,
-      },
-      create: {
         memberId,
-        groupId,
-        scheduledDate: currentMonth,
-        isPaid: true,
+        scheduledDate: paymentDate,
       },
     });
-    console.log("Payment result:", payment);
 
-    return NextResponse.json({
-      success: true,
-      isPaid: payment.isPaid,
-      date: payment.scheduledDate,
-    });
+    // If no payment record, create one
+    if (!payment) {
+      payment = await prisma.payment.create({
+        data: {
+          memberId,
+          groupId,
+          scheduledDate: paymentDate,
+          isPaid: true,
+        },
+      });
+    } else {
+      // Toggle the payment status
+      payment = await prisma.payment.update({
+        where: {
+          id: payment.id,
+        },
+        data: {
+          isPaid: !payment.isPaid,
+        },
+      });
+    }
+
+    return NextResponse.json(payment);
   } catch (error) {
-    console.error("Payment update failed:", error);
+    console.error("[PAYMENT_TOGGLE]", error);
     return NextResponse.json(
-      { error: "Payment update failed" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

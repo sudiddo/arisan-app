@@ -32,6 +32,9 @@
     --ring: 0 0% 3.9%;
 
     --radius: 0.5rem;
+
+    --paper-texture: url("/paper-texture.png");
+    --ink-stain: url("/ink-splat.png");
   }
 
   .dark {
@@ -70,8 +73,22 @@
     border-color: hsl(var(--border));
   }
   body {
-    background-color: hsl(var(--background));
+    background-color: hsl(45, 30%, 95%);
+    background-image: var(--paper-texture);
+    background-blend-mode: multiply;
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Retro shadcn button override */
+button {
+  border: 2px solid hsl(0, 0%, 20%) !important;
+  box-shadow: 3px 3px 0 hsl(0, 0%, 20%) !important;
+  transition: all 0.1s ease;
+}
+
+button:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 hsl(0, 0%, 20%) !important;
 }

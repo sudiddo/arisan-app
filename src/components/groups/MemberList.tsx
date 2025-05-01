@@ -1,127 +1,102 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { useGroups } from "@/context/GroupContext";
+import useSWR from "swr";
+import { PaymentStatus } from "./PaymentStatus";
+import { useSession } from "next-auth/react";
+import { AdminBadge } from "./AdminBadge";
 
 type Member = {
   id: string;
   name: string;
   createdAt: string;
   userId: string | null;
+  isAdmin: boolean;
+  paymentStatus?: {
+    isPaid: boolean;
+  };
 };
 
 type MemberListProps = {
   groupId: string;
-  members: Member[];
-  isCreator: boolean;
 };
 
-export function MemberList({ groupId, members, isCreator }: MemberListProps) {
-  const [sortBy, setSortBy] = useState<"name" | "date">("date");
-  const [filter, setFilter] = useState<"all" | "active" | "pending">("all");
+export function MemberList({ groupId }: MemberListProps) {
+  const { data: session } = useSession();
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: members, isLoading } = useSWR<Member[]>(
+    `/api/groups/${groupId}/members`,
+    fetcher
+  );
 
-  const filteredMembers = members.filter((member) => {
-    if (filter === "all") return true;
-    if (filter === "active") return member.userId !== null;
-    if (filter === "pending") return member.userId === null;
-    return true;
-  });
+  // Check if current user is an admin
+  const isCurrentUserAdmin = members?.some(
+    (member) => member.userId === session?.user?.id && member.isAdmin
+  );
 
-  const sortedMembers = [...filteredMembers].sort((a, b) => {
-    if (sortBy === "name") {
-      return a.name.localeCompare(b.name);
-    } else {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    }
-  });
+  // Get current month and year for payment status
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-medium">Members</h3>
+        <div className="divide-y rounded-md border">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex animate-pulse items-center justify-between p-4"
+            >
+              <div className="space-y-2">
+                <div className="h-5 w-24 rounded bg-muted"></div>
+                <div className="h-4 w-32 rounded bg-muted"></div>
+              </div>
+              <div className="h-6 w-16 rounded bg-muted"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Members ({members.length})</h2>
-        {isCreator && (
-          <Button size="sm" asChild>
-            <Link href={`/groups/${groupId}/invite`}>Invite Member</Link>
-          </Button>
-        )}
-      </div>
-
-      <div className="flex items-center gap-4 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Sort:</span>
-          <Button
-            size="sm"
-            variant={sortBy === "date" ? "default" : "outline"}
-            onClick={() => setSortBy("date")}
-            className="h-8"
-          >
-            Latest
-          </Button>
-          <Button
-            size="sm"
-            variant={sortBy === "name" ? "default" : "outline"}
-            onClick={() => setSortBy("name")}
-            className="h-8"
-          >
-            Name
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="text-muted-foreground">Show:</span>
-          <Button
-            size="sm"
-            variant={filter === "all" ? "default" : "outline"}
-            onClick={() => setFilter("all")}
-            className="h-8"
-          >
-            All
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "active" ? "default" : "outline"}
-            onClick={() => setFilter("active")}
-            className="h-8"
-          >
-            Active
-          </Button>
-          <Button
-            size="sm"
-            variant={filter === "pending" ? "default" : "outline"}
-            onClick={() => setFilter("pending")}
-            className="h-8"
-          >
-            Pending
-          </Button>
-        </div>
-      </div>
-
+      <h3 className="font-medium">Members ({members?.length || 0})</h3>
       <div className="divide-y rounded-md border">
-        {sortedMembers.length > 0 ? (
-          sortedMembers.map((member) => (
+        {!members || members.length === 0 ? (
+          <div className="p-4 text-center text-muted-foreground">
+            No members found
+          </div>
+        ) : (
+          members.map((member) => (
             <div
               key={member.id}
               className="flex items-center justify-between p-4"
             >
-              <div className="flex items-center gap-2">
-                <div className="font-medium">{member.name}</div>
-                {member.userId === null && (
-                  <span className="rounded bg-amber-100 px-2 py-1 text-xs text-amber-800">
-                    Pending
-                  </span>
-                )}
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium">
+                    {member.name}
+                    {member.userId === session?.user?.id && " (You)"}
+                  </p>
+                  {member.isAdmin && <AdminBadge />}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Joined {new Date(member.createdAt).toLocaleDateString()}
+                  {member.isAdmin && " • Creator"}
+                </p>
               </div>
-              <div className="text-sm text-muted-foreground">
-                Joined {new Date(member.createdAt).toLocaleDateString()}
-              </div>
+              <PaymentStatus
+                memberId={member.id}
+                groupId={groupId}
+                isAdmin={isCurrentUserAdmin}
+                disabled={member.isAdmin && isCurrentUserAdmin}
+                month={currentMonth}
+                year={currentYear}
+              />
             </div>
           ))
-        ) : (
-          <div className="p-4 text-center text-muted-foreground">
-            No members found matching your filters
-          </div>
         )}
       </div>
     </div>

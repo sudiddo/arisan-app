@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { randomUUID } from "crypto";
 
 type GroupWithMemberCount = {
   id: string;
@@ -87,6 +88,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // Generate token and set expiry date (30 days from now)
+    const claimToken = randomUUID();
+    const tokenExpiry = new Date();
+    tokenExpiry.setDate(tokenExpiry.getDate() + 30);
+
     const group = await prisma.group.create({
       data: {
         name,
@@ -95,6 +101,18 @@ export async function POST(request: Request) {
         creator: {
           connect: { id: session.user.id },
         },
+        // Automatically add creator as first member
+        members: {
+          create: {
+            name: session.user.name || "Group Creator",
+            userId: session.user.id,
+            claimToken,
+            tokenExpiry,
+          },
+        },
+      },
+      include: {
+        members: true,
       },
     });
 

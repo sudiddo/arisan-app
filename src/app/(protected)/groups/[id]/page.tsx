@@ -8,6 +8,7 @@ import { MemberList } from "@/components/groups/MemberList";
 import { PaymentSchedule } from "@/components/groups/PaymentSchedule";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
 
 type GroupDetails = {
   id: string;
@@ -40,6 +41,13 @@ export default function GroupDetailPage() {
   const groupId = params.id as string;
 
   const isCreator = group?.creatorId === session?.user?.id;
+
+  // Prepare members with admin status
+  const membersWithAdminStatus =
+    group?.members.map((member) => ({
+      ...member,
+      isAdmin: member.userId === group.creatorId,
+    })) || [];
 
   const fetchGroupDetails = async () => {
     try {
@@ -119,7 +127,8 @@ export default function GroupDetailPage() {
               )}
             </div>
             <p className="text-muted-foreground">
-              Monthly contribution: ${group.monthlyAmount.toLocaleString()}
+              Monthly contribution:{" "}
+              <CurrencyDisplay amount={group.monthlyAmount} />
             </p>
             {group.description && (
               <p className="mt-2 text-sm">{group.description}</p>
@@ -134,14 +143,10 @@ export default function GroupDetailPage() {
           )}
 
           <div className="grid gap-8 lg:grid-cols-2">
-            <MemberList
-              groupId={group.id}
-              members={group.members}
-              isCreator={isCreator}
-            />
+            <MemberList groupId={group.id} />
 
             <PaymentSchedule
-              members={group.members}
+              members={membersWithAdminStatus}
               payments={group.payments}
               isCreator={isCreator}
               groupId={groupId}

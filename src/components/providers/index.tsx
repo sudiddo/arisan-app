@@ -4,13 +4,16 @@ import { ReactNode } from "react";
 import AuthProvider from "./AuthProvider";
 import { ToastProvider } from "./ToastProvider";
 import { GroupProvider } from "@/context/GroupContext";
+import { ThemeProvider } from "./ThemeProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <AuthProvider>
       <GroupProvider>
-        {children}
-        <ToastProvider />
+        <ThemeProvider>
+          {children}
+          <ToastProvider />
+        </ThemeProvider>
       </GroupProvider>
     </AuthProvider>
   );

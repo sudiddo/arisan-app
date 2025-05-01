@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { PaymentToggle } from "./PaymentToggle";
+import { PaymentBadge } from "./PaymentBadge";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AdminBadge } from "./AdminBadge";
 
 type Member = {
   id: string;
   name: string;
+  isAdmin?: boolean;
 };
 
 type Payment = {
@@ -31,23 +35,22 @@ export function PaymentSchedule({
   groupId,
   onRecordPayment,
 }: PaymentScheduleProps) {
-  const [currentView, setCurrentView] = useState<"list" | "calendar">("list");
-
-  // Calculate the total months based on number of members
-  const totalMonths = members.length;
-  const currentMonth = new Date().getMonth();
+  const [currentMonth, setCurrentMonth] = useState<number>(
+    new Date().getMonth()
+  );
   const currentYear = new Date().getFullYear();
 
-  // Generate months for the schedule
-  const months = Array.from({ length: totalMonths }, (_, i) => {
+  // Generate months for the schedule (only show next few months)
+  const months = Array.from({ length: 3 }, (_, i) => {
     const monthIndex = (currentMonth + i) % 12;
     const year = currentYear + Math.floor((currentMonth + i) / 12);
     return {
       label: new Date(year, monthIndex, 1).toLocaleDateString("en-US", {
-        month: "short",
+        month: "long",
         year: "numeric",
       }),
       date: new Date(year, monthIndex, 1),
+      monthOffset: i,
     };
   });
 
@@ -65,126 +68,70 @@ export function PaymentSchedule({
     return payment?.isPaid || false;
   };
 
+  const handlePrevMonth = () => {
+    setCurrentMonth((prev) => (prev - 1 + 12) % 12);
+  };
+
+  const handleNextMonth = () => {
+    setCurrentMonth((prev) => (prev + 1) % 12);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Payment Schedule</h2>
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={currentView === "list" ? "default" : "outline"}
-            onClick={() => setCurrentView("list")}
-          >
-            List
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+            <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button
-            size="sm"
-            variant={currentView === "calendar" ? "default" : "outline"}
-            onClick={() => setCurrentView("calendar")}
-          >
-            Calendar
+          <Button variant="outline" size="icon" onClick={handleNextMonth}>
+            <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {currentView === "list" ? (
-        <div className="rounded-md border">
-          <div className="grid grid-cols-[3fr_repeat(auto-fill,1fr)] border-b bg-muted/50 px-4 py-3 text-sm font-medium">
-            <div>Member</div>
-            {months.map((month, i) => (
-              <div key={i} className="text-center">
-                {month.label}
-              </div>
-            ))}
-          </div>
-
-          <div className="divide-y">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="grid grid-cols-[3fr_repeat(auto-fill,1fr)] px-4 py-3"
-              >
-                <div className="font-medium">{member.name}</div>
-                {months.map((_, monthIndex) => {
-                  const isPaid = getMemberPaymentStatus(member.id, monthIndex);
-                  return (
-                    <div
-                      key={monthIndex}
-                      className="flex items-center justify-center"
-                    >
-                      {isCreator ? (
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+        {months.map((month, monthIndex) => (
+          <div key={monthIndex} className="rounded-md border shadow-sm p-4">
+            <div className="mb-3 font-medium text-center">{month.label}</div>
+            <div className="space-y-3">
+              {members.map((member) => {
+                const isPaid = getMemberPaymentStatus(member.id, monthIndex);
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center justify-between py-2 border-b last:border-0"
+                  >
+                    <div className="flex items-center gap-2 truncate">
+                      <span className="truncate">{member.name}</span>
+                      {member.isAdmin && <AdminBadge />}
+                    </div>
+                    {isCreator ? (
+                      member.isAdmin ? (
+                        <PaymentBadge isPaid={true} />
+                      ) : (
                         <PaymentToggle
                           memberId={member.id}
                           groupId={groupId}
                           isPaid={isPaid}
+                          month={month.monthOffset}
                           onToggleSuccess={
                             onRecordPayment
                               ? () => onRecordPayment(member.id)
                               : undefined
                           }
                         />
-                      ) : (
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${
-                            isPaid
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {isPaid ? "Paid" : "Pending"}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {months.map((month, monthIndex) => (
-            <div key={monthIndex} className="rounded-md border p-4">
-              <div className="mb-3 font-medium">{month.label}</div>
-              <div className="space-y-2">
-                {members.map((member) => {
-                  const isPaid = getMemberPaymentStatus(member.id, monthIndex);
-                  return (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between"
-                    >
-                      <span>{member.name}</span>
-                      {isCreator ? (
-                        <PaymentToggle
-                          memberId={member.id}
-                          groupId={groupId}
-                          isPaid={isPaid}
-                          onToggleSuccess={
-                            onRecordPayment
-                              ? () => onRecordPayment(member.id)
-                              : undefined
-                          }
-                        />
-                      ) : (
-                        <span
-                          className={`rounded-full px-2 py-1 text-xs ${
-                            isPaid
-                              ? "bg-green-100 text-green-800"
-                              : "bg-gray-100 text-gray-800"
-                          }`}
-                        >
-                          {isPaid ? "Paid" : "Pending"}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
+                      )
+                    ) : (
+                      <PaymentBadge isPaid={isPaid} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

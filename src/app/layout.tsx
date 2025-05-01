@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Courier_Prime, Crimson_Text } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import SessionDebug from "@/components/SessionDebug";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const courierPrime = Courier_Prime({
+  weight: ["400", "700"],
+  variable: "--font-courier",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const crimsonText = Crimson_Text({
+  weight: ["400", "600", "700"],
+  variable: "--font-crimson",
   subsets: ["latin"],
 });
 
@@ -27,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}
+        className={`${courierPrime.variable} ${crimsonText.variable} antialiased min-h-screen font-serif`}
       >
         <Providers>
           {process.env.NODE_ENV === "development" && <SessionDebug />}

@@ -2,6 +2,7 @@
 
 import { useGroups } from "@/context/GroupContext";
 import Link from "next/link";
+import { CurrencyDisplay } from "../ui/CurrencyDisplay";
 
 export type GroupCardProps = {
   id: string;
@@ -44,7 +45,7 @@ export function GroupCard({
       </div>
       <div className="mt-2 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Monthly amount</span>
-        <span className="font-medium">${monthlyAmount.toLocaleString()}</span>
+        <CurrencyDisplay amount={monthlyAmount} className="font-medium" />
       </div>
     </Link>
   );
