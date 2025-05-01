@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { PaymentToggle } from "./PaymentToggle";
 
 type Member = {
   id: string;
@@ -11,7 +12,6 @@ type Member = {
 type Payment = {
   id: string;
   memberId: string;
-  amount: number;
   scheduledDate: string;
   isPaid: boolean;
 };
@@ -19,16 +19,16 @@ type Payment = {
 type PaymentScheduleProps = {
   members: Member[];
   payments: Payment[];
-  monthlyAmount: number;
   isCreator: boolean;
-  onRecordPayment?: (memberId: string, month: number) => void;
+  groupId: string;
+  onRecordPayment?: (memberId: string) => void;
 };
 
 export function PaymentSchedule({
   members,
   payments = [],
-  monthlyAmount,
   isCreator,
+  groupId,
   onRecordPayment,
 }: PaymentScheduleProps) {
   const [currentView, setCurrentView] = useState<"list" | "calendar">("list");
@@ -112,22 +112,26 @@ export function PaymentSchedule({
                       key={monthIndex}
                       className="flex items-center justify-center"
                     >
-                      {isPaid ? (
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-800">
-                          Paid
-                        </span>
-                      ) : isCreator && onRecordPayment ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => onRecordPayment(member.id, monthIndex)}
-                        >
-                          Record
-                        </Button>
+                      {isCreator ? (
+                        <PaymentToggle
+                          memberId={member.id}
+                          groupId={groupId}
+                          isPaid={isPaid}
+                          onToggleSuccess={
+                            onRecordPayment
+                              ? () => onRecordPayment(member.id)
+                              : undefined
+                          }
+                        />
                       ) : (
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                          Pending
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${
+                            isPaid
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {isPaid ? "Paid" : "Pending"}
                         </span>
                       )}
                     </div>
@@ -151,22 +155,26 @@ export function PaymentSchedule({
                       className="flex items-center justify-between"
                     >
                       <span>{member.name}</span>
-                      {isPaid ? (
-                        <span className="rounded-full bg-green-100 px-2 py-1 text-xs text-green-800">
-                          Paid
-                        </span>
-                      ) : isCreator && onRecordPayment ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => onRecordPayment(member.id, monthIndex)}
-                        >
-                          Record
-                        </Button>
+                      {isCreator ? (
+                        <PaymentToggle
+                          memberId={member.id}
+                          groupId={groupId}
+                          isPaid={isPaid}
+                          onToggleSuccess={
+                            onRecordPayment
+                              ? () => onRecordPayment(member.id)
+                              : undefined
+                          }
+                        />
                       ) : (
-                        <span className="rounded-full bg-gray-100 px-2 py-1 text-xs text-gray-800">
-                          Pending
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs ${
+                            isPaid
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
+                          {isPaid ? "Paid" : "Pending"}
                         </span>
                       )}
                     </div>

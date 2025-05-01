@@ -196,7 +196,6 @@ export async function GET(
         select: {
           id: true,
           memberId: true,
-          amount: true,
           scheduledDate: true,
           isPaid: true,
         },

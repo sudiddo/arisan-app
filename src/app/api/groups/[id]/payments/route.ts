@@ -1,40 +1,62 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { authOptions } from "../../../auth/[...nextauth]/route";
 import { prisma } from "@/lib/prisma";
+import { getServerSession } from "next-auth";
 
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
+  console.log("SESSION:", JSON.stringify(session, null, 2));
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id: groupId } = params;
+  console.log(
+    `Authorization check for userId: ${session.user.id}, groupId: ${groupId}`
+  );
 
   try {
-    // Verify the user is the creator of the group
-    const group = await prisma.group.findUnique({
+    // First, let's check if the group exists
+    const groupExists = await prisma.group.findUnique({
       where: { id: groupId },
-      select: { creatorId: true, monthlyAmount: true },
     });
+    console.log("Group exists:", !!groupExists);
 
-    if (!group) {
+    if (!groupExists) {
       return NextResponse.json({ error: "Group not found" }, { status: 404 });
     }
 
-    if (group.creatorId !== session.user.id) {
+    // Check if user is the creator
+    const isCreator = groupExists.creatorId === session.user.id;
+    console.log("User is creator:", isCreator);
+
+    // Check if user is a member
+    const userMembership = await prisma.member.findFirst({
+      where: {
+        groupId,
+        userId: session.user.id,
+      },
+    });
+    console.log("User membership:", userMembership);
+
+    // If neither creator nor member, deny access
+    if (!isCreator && !userMembership) {
+      console.log("DENIED: User is neither creator nor member");
       return NextResponse.json(
-        { error: "Only group creators can record payments" },
+        { error: "Not authorized for this group" },
         { status: 403 }
       );
     }
 
+    console.log("Authorization passed");
+
     const body = await request.json();
-    const { memberId, month } = body;
+    const { memberId } = body;
+    console.log("Request for memberId:", memberId);
 
     if (!memberId) {
       return NextResponse.json(
@@ -44,34 +66,32 @@ export async function POST(
     }
 
     // Check if member exists and belongs to this group
-    const member = await prisma.member.findFirst({
+    const memberExists = await prisma.member.findFirst({
       where: {
         id: memberId,
         groupId,
       },
     });
+    console.log("Target member exists:", !!memberExists);
 
-    if (!member) {
+    if (!memberExists) {
       return NextResponse.json(
         { error: "Member not found in this group" },
         { status: 404 }
       );
     }
 
-    // Calculate payment date based on month index
-    const currentDate = new Date();
-    const paymentDate = new Date(
-      currentDate.getFullYear(),
-      currentDate.getMonth() + (month || 0),
-      1
-    );
+    // Get first day of current month
+    const currentMonth = new Date();
+    currentMonth.setDate(1);
+    currentMonth.setHours(0, 0, 0, 0);
 
-    // Create or update payment record
+    // Toggle payment status - Skip the findUnique and go straight to upsert
     const payment = await prisma.payment.upsert({
       where: {
         memberId_scheduledDate: {
           memberId,
-          scheduledDate: paymentDate,
+          scheduledDate: currentMonth,
         },
       },
       update: {
@@ -79,24 +99,22 @@ export async function POST(
       },
       create: {
         memberId,
-        amount: group.monthlyAmount,
-        scheduledDate: paymentDate,
+        groupId,
+        scheduledDate: currentMonth,
         isPaid: true,
-        group: { connect: { id: groupId } },
       },
     });
+    console.log("Payment result:", payment);
 
     return NextResponse.json({
-      id: payment.id,
-      memberId: payment.memberId,
-      amount: payment.amount,
-      scheduledDate: payment.scheduledDate,
+      success: true,
       isPaid: payment.isPaid,
+      date: payment.scheduledDate,
     });
   } catch (error) {
-    console.error("Error recording payment:", error);
+    console.error("Payment update failed:", error);
     return NextResponse.json(
-      { error: "Failed to record payment" },
+      { error: "Payment update failed" },
       { status: 500 }
     );
   }

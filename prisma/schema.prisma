@@ -85,9 +85,8 @@ model Member {
 
 model Payment {
   id            String   @id @default(cuid())
-  amount        Float
-  scheduledDate DateTime
   isPaid        Boolean  @default(false)
+  scheduledDate DateTime
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   memberId      String
@@ -96,4 +95,6 @@ model Payment {
   member        Member   @relation(fields: [memberId], references: [id])
 
   @@unique([memberId, scheduledDate])
+  @@index([groupId])
+  @@index([scheduledDate])
 }

@@ -26,7 +26,6 @@ type GroupDetails = {
   payments: {
     id: string;
     memberId: string;
-    amount: number;
     scheduledDate: string;
     isPaid: boolean;
   }[];
@@ -69,18 +68,19 @@ export default function GroupDetailPage() {
     }
   }, [groupId]);
 
-  const handleRecordPayment = async (memberId: string, month: number) => {
+  const handleRecordPayment = async (memberId: string) => {
     try {
       const response = await fetch(`/api/groups/${groupId}/payments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ memberId, month }),
+        body: JSON.stringify({ memberId }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to record payment");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to record payment");
       }
 
       toast.success("Payment recorded successfully");
@@ -143,8 +143,8 @@ export default function GroupDetailPage() {
             <PaymentSchedule
               members={group.members}
               payments={group.payments}
-              monthlyAmount={group.monthlyAmount}
               isCreator={isCreator}
+              groupId={groupId}
               onRecordPayment={handleRecordPayment}
             />
           </div>
