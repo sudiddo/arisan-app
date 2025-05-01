@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import { PaymentSchedule } from "@/components/groups/PaymentSchedule";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { CurrencyDisplay } from "@/components/ui/CurrencyDisplay";
+import RoundStatus from "@/components/group/RoundStatus";
 
 type GroupDetails = {
   id: string;
@@ -18,6 +19,7 @@ type GroupDetails = {
   rules: string | null;
   createdAt: string;
   creatorId: string;
+  start_month: string;
   members: {
     id: string;
     name: string;
@@ -29,6 +31,12 @@ type GroupDetails = {
     memberId: string;
     scheduledDate: string;
     isPaid: boolean;
+  }[];
+  rounds: {
+    id: string;
+    month: string;
+    is_completed: boolean;
+    winner_id: string | null;
   }[];
 };
 
@@ -49,7 +57,7 @@ export default function GroupDetailPage() {
       isAdmin: member.userId === group.creatorId,
     })) || [];
 
-  const fetchGroupDetails = async () => {
+  const fetchGroupDetails = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -68,13 +76,13 @@ export default function GroupDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [groupId]);
 
   useEffect(() => {
     if (groupId) {
       fetchGroupDetails();
     }
-  }, [groupId]);
+  }, [groupId, fetchGroupDetails]);
 
   const handleRecordPayment = async (memberId: string) => {
     try {
@@ -143,12 +151,18 @@ export default function GroupDetailPage() {
           )}
 
           <div className="grid gap-8 lg:grid-cols-2">
-            <MemberList groupId={group.id} />
+            <div className="space-y-8">
+              <RoundStatus
+                groupId={group.id}
+                isCreator={isCreator}
+                refetchGroup={fetchGroupDetails}
+              />
+              <MemberList groupId={group.id} />
+            </div>
 
             <PaymentSchedule
               members={membersWithAdminStatus}
               payments={group.payments}
-              isCreator={isCreator}
               groupId={groupId}
               onRecordPayment={handleRecordPayment}
             />

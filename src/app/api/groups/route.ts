@@ -79,14 +79,17 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
 
-    const { name, monthlyAmount, rules } = body;
+    const { name, monthlyAmount, rules, description, start_month } = body;
 
-    if (!name || !monthlyAmount) {
+    if (!name || !monthlyAmount || !start_month) {
       return NextResponse.json(
-        { error: "Name and monthly amount are required" },
+        { error: "Name, monthly amount, and start month are required" },
         { status: 400 }
       );
     }
+
+    // Parse start_month to a Date object (first day of the month)
+    const startMonthDate = new Date(start_month);
 
     // Generate token and set expiry date (30 days from now)
     const claimToken = randomUUID();
@@ -98,6 +101,8 @@ export async function POST(request: Request) {
         name,
         monthlyAmount: parseFloat(monthlyAmount),
         rules,
+        description,
+        start_month: startMonthDate,
         creator: {
           connect: { id: session.user.id },
         },
@@ -110,9 +115,17 @@ export async function POST(request: Request) {
             tokenExpiry,
           },
         },
+        // Create the first round
+        rounds: {
+          create: {
+            month: startMonthDate,
+            is_completed: false,
+          },
+        },
       },
       include: {
         members: true,
+        rounds: true,
       },
     });
 

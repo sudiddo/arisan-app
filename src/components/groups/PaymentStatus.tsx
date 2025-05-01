@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { Check, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { PaymentToggle } from "./PaymentToggle";
 
 type PaymentStatusProps = {
@@ -17,7 +17,6 @@ export function PaymentStatus({
   memberId,
   groupId,
   isAdmin = false,
-  disabled = false,
   month,
   year,
 }: PaymentStatusProps) {
@@ -48,7 +47,7 @@ export function PaymentStatus({
     );
   }
 
-  if (isAdmin && !disabled) {
+  if (isAdmin) {
     return (
       <PaymentToggle
         memberId={memberId}
@@ -59,16 +58,4 @@ export function PaymentStatus({
       />
     );
   }
-
-  return paymentStatus.isPaid ? (
-    <span className="flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
-      <Check className="h-3 w-3" />
-      Paid
-    </span>
-  ) : (
-    <span className="flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
-      <Clock className="h-3 w-3" />
-      Pending
-    </span>
-  );
 }

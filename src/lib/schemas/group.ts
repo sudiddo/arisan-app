@@ -9,6 +9,7 @@ export const createGroupSchema = z.object({
     .min(1, { message: "Monthly amount must be greater than 0" }),
   description: z.string().optional(),
   rules: z.string().optional(),
+  start_month: z.string(),
 });
 
 export type CreateGroupFormValues = z.infer<typeof createGroupSchema>;

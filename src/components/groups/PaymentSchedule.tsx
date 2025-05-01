@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { PaymentToggle } from "./PaymentToggle";
-import { PaymentBadge } from "./PaymentBadge";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { AdminBadge } from "./AdminBadge";
 
 type Member = {
   id: string;
@@ -23,7 +21,6 @@ type Payment = {
 type PaymentScheduleProps = {
   members: Member[];
   payments: Payment[];
-  isCreator: boolean;
   groupId: string;
   onRecordPayment?: (memberId: string) => void;
 };
@@ -31,7 +28,6 @@ type PaymentScheduleProps = {
 export function PaymentSchedule({
   members,
   payments = [],
-  isCreator,
   groupId,
   onRecordPayment,
 }: PaymentScheduleProps) {
@@ -104,27 +100,19 @@ export function PaymentSchedule({
                   >
                     <div className="flex items-center gap-2 truncate">
                       <span className="truncate">{member.name}</span>
-                      {member.isAdmin && <AdminBadge />}
                     </div>
-                    {isCreator ? (
-                      member.isAdmin ? (
-                        <PaymentBadge isPaid={true} />
-                      ) : (
-                        <PaymentToggle
-                          memberId={member.id}
-                          groupId={groupId}
-                          isPaid={isPaid}
-                          month={month.monthOffset}
-                          onToggleSuccess={
-                            onRecordPayment
-                              ? () => onRecordPayment(member.id)
-                              : undefined
-                          }
-                        />
-                      )
-                    ) : (
-                      <PaymentBadge isPaid={isPaid} />
-                    )}
+
+                    <PaymentToggle
+                      memberId={member.id}
+                      groupId={groupId}
+                      isPaid={isPaid}
+                      month={month.monthOffset}
+                      onToggleSuccess={
+                        onRecordPayment
+                          ? () => onRecordPayment(member.id)
+                          : undefined
+                      }
+                    />
                   </div>
                 );
               })}

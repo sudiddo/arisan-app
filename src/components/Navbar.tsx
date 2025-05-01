@@ -11,39 +11,65 @@ export function Navbar() {
   const isAuthenticated = status === "authenticated";
 
   return (
-    <nav className="border-b bg-background">
-      <div className="container flex justify-between items-center h-16">
-        <Link href="/" className="font-bold text-xl">
-          Arisan App
+    <nav className="border-b-4 border-ink bg-paper">
+      <div className="container flex justify-between items-center h-20">
+        <Link
+          href="/"
+          className="font-pixel text-xl text-primary flex items-center"
+        >
+          <span className="text-primary">Arisan</span>
+          <span className="text-stamp">Ku!</span>
+          <div className="ml-2 w-6 h-6 relative">
+            <Image
+              src="/money-coins.png"
+              alt="Coins"
+              width={24}
+              height={24}
+              className="animate-bounce"
+              style={{
+                imageRendering: "auto",
+              }}
+            />
+          </div>
         </Link>
 
         <div className="flex items-center gap-4">
           {isAuthenticated ? (
             <>
-              <Link href="/groups" className="text-sm font-medium">
-                My Groups
+              <Link
+                href="/groups"
+                className="text-sm font-mono hover:underline"
+              >
+                Grup Saya
               </Link>
-              <Button variant="ghost" size="sm" onClick={() => signOut()}>
-                Sign Out
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => signOut()}
+                className="font-mono"
+              >
+                Keluar
               </Button>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 border-3 border-ink p-1 px-3 rounded-md bg-muted shadow-retro-sm">
                 {session?.user?.image && (
                   <Image
                     src={session.user.image}
                     alt="User profile"
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full border-2 border-ink"
                     width={32}
                     height={32}
                   />
                 )}
-                <span className="text-sm font-medium">
-                  {session?.user?.name}
-                </span>
+                <span className="text-sm font-mono">{session?.user?.name}</span>
               </div>
             </>
           ) : (
-            <Button onClick={() => signIn("google")} disabled={isLoading}>
-              {isLoading ? "Loading..." : "Sign In"}
+            <Button
+              onClick={() => signIn("google")}
+              disabled={isLoading}
+              className="bg-primary text-ink font-mono"
+            >
+              {isLoading ? "Loading..." : "Masuk"}
             </Button>
           )}
         </div>

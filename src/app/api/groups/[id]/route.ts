@@ -113,17 +113,10 @@ export async function GET(
     console.log(`Executing Prisma query for group: ${id}`);
 
     const group = await prisma.group.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        monthlyAmount: true,
-        description: true,
-        rules: true,
-        createdAt: true,
-        updatedAt: true,
-        creatorId: true,
-        creator: true,
+      where: {
+        id: params.id,
+      },
+      include: {
         members: {
           select: {
             id: true,
@@ -131,8 +124,23 @@ export async function GET(
             createdAt: true,
             userId: true,
           },
+        },
+        rounds: {
+          select: {
+            id: true,
+            month: true,
+            is_completed: true,
+            winner_id: true,
+            winner: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
           orderBy: {
-            createdAt: "desc",
+            month: "desc",
           },
         },
       },

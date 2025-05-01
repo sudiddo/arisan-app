@@ -21,11 +21,25 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
 
 export default function NewGroupPage() {
   const router = useRouter();
   const { refetchGroups } = useGroups();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Get the current month as the initial start_month value
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const formattedFirstDay = format(firstDayOfMonth, "yyyy-MM-dd");
 
   const form = useForm<CreateGroupFormValues>({
     resolver: zodResolver(createGroupSchema),
@@ -34,6 +48,7 @@ export default function NewGroupPage() {
       monthlyAmount: undefined,
       description: "",
       rules: "",
+      start_month: formattedFirstDay,
     },
   });
 
@@ -100,6 +115,59 @@ export default function NewGroupPage() {
                     {...field}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="start_month"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Start Month</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full pl-3 text-left font-normal",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value ? (
+                          format(new Date(field.value), "MMMM yyyy")
+                        ) : (
+                          <span>Pick a month</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value ? new Date(field.value) : undefined}
+                      onSelect={(date) => {
+                        if (date) {
+                          // Set to first day of selected month
+                          const firstDay = new Date(
+                            date.getFullYear(),
+                            date.getMonth(),
+                            1
+                          );
+                          field.onChange(format(firstDay, "yyyy-MM-dd"));
+                        }
+                      }}
+                      disabled={(date) => {
+                        // Disable dates in the future
+                        return date > new Date();
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}

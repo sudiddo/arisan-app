@@ -91,7 +91,6 @@ export function MemberList({ groupId }: MemberListProps) {
                 memberId={member.id}
                 groupId={groupId}
                 isAdmin={isCurrentUserAdmin}
-                disabled={member.isAdmin && isCurrentUserAdmin}
                 month={currentMonth}
                 year={currentYear}
               />

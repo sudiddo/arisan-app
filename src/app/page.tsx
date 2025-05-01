@@ -19,9 +19,15 @@ export default async function Home() {
       <main className="flex-1">
         <MarketingPage />
       </main>
-      <footer className="border-t py-6">
-        <div className="container text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} Arisan App. All rights reserved.
+      <footer className="border-t-4 border-ink py-6 bg-muted">
+        <div className="container text-center">
+          <div className="text-sm font-mono mb-2">
+            <span className="text-stamp">♥</span> Dibuat dengan penuh semangat
+            arisan <span className="text-stamp">♥</span>
+          </div>
+          <div className="text-xs font-mono">
+            &copy; {new Date().getFullYear()} ArisanKu. Hak cipta dilindungi.
+          </div>
         </div>
       </footer>
     </div>
