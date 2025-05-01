@@ -1,0 +1,41 @@
+name: Prisma Schema Validation
+
+on:
+  pull_request:
+    paths:
+      - "prisma/schema.prisma"
+      - "prisma/migrations/**"
+      - "src/**/*.ts"
+
+jobs:
+  validate-schema:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Check schema-database consistency
+        run: |
+          # Create test SQLite database
+          npx prisma migrate dev --name ci-check --create-only
+
+          # Generate client
+          npx prisma generate
+
+          # Validate migrations
+          npx prisma migrate dev --preview-feature
+
+      - name: Run type check
+        run: npx tsc --noEmit

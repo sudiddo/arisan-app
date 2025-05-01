@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  emailVerified DateTime?
+  accounts      Account[]
+  groups        Group[]
+  members       Member[]
+  sessions      Session[]
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Group {
+  id            String    @id @default(cuid())
+  name          String
+  monthlyAmount Float
+  rules         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  creatorId     String
+  description   String?
+  creator       User      @relation(fields: [creatorId], references: [id])
+  members       Member[]
+  payments      Payment[]
+}
+
+model Member {
+  id          String    @id @default(cuid())
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  groupId     String
+  userId      String?
+  claimToken  String    @unique
+  tokenExpiry DateTime
+  user        User?     @relation(fields: [userId], references: [id])
+  group       Group     @relation(fields: [groupId], references: [id])
+  payments    Payment[]
+}
+
+model Payment {
+  id            String   @id @default(cuid())
+  amount        Float
+  scheduledDate DateTime
+  isPaid        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  memberId      String
+  groupId       String
+  group         Group    @relation(fields: [groupId], references: [id])
+  member        Member   @relation(fields: [memberId], references: [id])
+
+  @@unique([memberId, scheduledDate])
+}
